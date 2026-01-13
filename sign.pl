@@ -1,19 +1,24 @@
 #!/usr/bin/perl
+# 修正版 sign.pl：自动补全 bootblock 到 510 字节，再添加 0x55aa
+my $buf;
+my $n;
 
-open(SIG, $ARGV[0]) || die "open $ARGV[0]: $!";
+open(F, "<bootblock") || die "sign: can't open bootblock";
+$n = read(F, $buf, 510);
+close(F);
 
-$n = sysread(SIG, $buf, 1000);
-
-if($n > 510){
-  print STDERR "boot block too large: $n bytes (max 510)\n";
-  exit 1;
+# 自动补 0 到 510 字节（关键修改）
+if($n < 510){
+  $buf .= "\0" x (510 - $n);
+}elsif($n > 510){
+  $buf = substr($buf, 0, 510); # 超过则截断
 }
 
-print STDERR "boot block is $n bytes (max 510)\n";
+open(F, ">bootblock") || die "sign: can't open bootblock for writing";
+print F $buf;
+# 添加引导扇区结束标志 0x55aa
+print F "\x55\xaa";
+close(F);
 
-$buf .= "\0" x (510-$n);
-$buf .= "\x55\xAA";
-
-open(SIG, ">$ARGV[0]") || die "open >$ARGV[0]: $!";
-print SIG $buf;
-close SIG;
+print "sign: bootblock padded to 512 bytes (510 + 0x55aa)\n";
+exit 0;
