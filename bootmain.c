@@ -15,6 +15,12 @@
 #include "x86.h"
 #include "memlayout.h"
 
+static void print_boot_msg(const char *msg) {
+    // 简单直接写端口，不等待 THR 空
+    for (; *msg; msg++)
+        outb(0x3F8, *msg);
+}
+
 #define SECTSIZE  512       // 磁盘扇区大小（512字节），与bootasm.S中的SECTORS一致
 
 // 函数声明：从磁盘读取指定扇区到内存
@@ -40,7 +46,10 @@ bootmain(void)
   // Read 1st page off disk
   // 3. 从磁盘读取ELF头部到内存：读取从磁盘扇区2开始的1个扇区（512字节）
   // 磁盘扇区0：bootasm.S（512字节）；扇区1：bootmain.c（512字节）；扇区2及以后：内核ELF文件
+  print_boot_msg("[BOOT] enter bootmain\n");
   readseg((uchar*)elf, 4096, 0);
+  // 打印 ELF 头加载完成
+  print_boot_msg("[BOOT] elf header loaded\n");
 
   // Is this an ELF executable?
   // 4. 验证ELF文件合法性：检查ELF魔数（固定为0x7F454C46，对应ASCII的"\x7FELF"）
@@ -65,6 +74,8 @@ bootmain(void)
 
   // Call the entry point from the ELF header.
   // Does not return!
+  // 打印内核加载完成
+  print_boot_msg("[BOOT] kernel loaded\n");
   entry = (void(*)(void))(elf->entry);
   entry();
 }

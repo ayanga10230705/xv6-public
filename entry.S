@@ -55,6 +55,9 @@ _start = V2P_WO(entry)
 entry:
   # Turn on page size extension for 4Mbyte pages
   # 开启4MB大页扩展：x86架构默认支持4KB小页，开启CR4.PSE位后支持4MB大页（减少页表层级）
+  movb    $'>', %al
+  movw    $0x3F8, %dx
+  outb    %al, %dx
   movl    %cr4, %eax
   orl     $(CR4_PSE), %eax
   movl    %eax, %cr4
